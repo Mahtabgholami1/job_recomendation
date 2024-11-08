@@ -1,0 +1,102 @@
+import streamlit as st
+import numpy as np
+import pandas as pd
+from sklearn.neighbors import NearestNeighbors
+
+
+company_names = [
+    "Mapna", "Irancell", "Hamrah Aval", "Saman Bank", "Mellat Bank",
+    "Digikala", "Snapp", "Cafe Bazaar", "Tap30", "Filimo",
+    "Namava", "Aparat", "Pars Khodro", "Iran Khodro", "SAIPA",
+    "Mobarakeh Steel", "Jam Petrochemical", "MAPNA Group", "Tejarat Bank", "Pars Online"
+]
+
+company_summaries = [
+    "Power generation and automation company", "Telecommunications provider", "Mobile operator", 
+    "Private banking services", "Leading banking institution", 
+    "E-commerce platform", "Ride-hailing service", "App marketplace", 
+    "Ride-hailing platform", "Video streaming service", 
+    "Video streaming platform", "Video-sharing platform", "Automaker", 
+    "Leading automaker", "Automaker", 
+    "Steel manufacturing", "Petrochemical company", "Engineering conglomerate", 
+    "Commercial banking", "Internet service provider"
+]
+
+num_companies = len(company_names)
+
+
+company_data = {
+    "id_co": range(1, num_companies + 1),
+    "company_name": company_names,
+    "summary": company_summaries,
+    "salary": np.random.randint(1000, 5000, size=num_companies),
+    "python": np.random.randint(0, 2, size=num_companies),
+    "c#": np.random.randint(0, 2, size=num_companies),
+    "git": np.random.randint(0, 2, size=num_companies),
+    "regex": np.random.randint(0, 2, size=num_companies),
+    "pymongo": np.random.randint(0, 2, size=num_companies),
+    "sql": np.random.randint(0, 2, size=num_companies),
+    "agile": np.random.randint(0, 2, size=num_companies),
+    "numpy": np.random.randint(0, 2, size=num_companies),
+    "pandas": np.random.randint(0, 2, size=num_companies),
+}
+
+companies_df = pd.DataFrame(company_data)
+
+
+skill_columns = ["python", "c#", "git", "regex", "pymongo", "sql", "agile", "numpy", "pandas"]
+knn_model = NearestNeighbors(n_neighbors=5, metric='cosine')
+knn_model.fit(companies_df[skill_columns])
+
+
+def recommend_similar_companies(user_skills, knn_model, companies_df):
+    distances, indices = knn_model.kneighbors(user_skills)
+    
+    recommendations = []
+    for dist, idx in zip(distances[0], indices[0]):
+        company_info = companies_df.iloc[idx]
+        recommendations.append([
+            company_info['company_name'],
+            company_info['salary'],
+            company_info['summary'],
+            round(1 - dist, 2)  
+        ])
+    
+    return pd.DataFrame(recommendations, columns=["Company Name", "Salary", "Summary", "Similarity"])
+
+
+st.title("Company Recommendation Based on Skills")
+
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    user_python = st.checkbox('Python')
+    user_csharp = st.checkbox('C#')
+    user_git = st.checkbox('Git')
+
+with col2:
+    user_regex = st.checkbox('Regex')
+    user_pymongo = st.checkbox('Pymongo')
+    user_sql = st.checkbox('SQL')
+
+with col3:
+    user_agile = st.checkbox('Agile')
+    user_numpy = st.checkbox('Numpy')
+    user_pandas = st.checkbox('Pandas')
+
+ 
+if st.button('Get Recommendations'):
+    
+    user_skills = np.array([[int(user_python), int(user_csharp), int(user_git), int(user_regex), 
+                             int(user_pymongo), int(user_sql), int(user_agile), int(user_numpy), int(user_pandas)]])
+    
+    
+    recommendations_df = recommend_similar_companies(user_skills, knn_model, companies_df)
+    st.subheader("Top 5 Recommended Companies Based on Skills:")
+    
+    
+    for idx, row in recommendations_df.iterrows():
+        with st.expander(f"{row['Company Name']} - Similarity: {row['Similarity']}"):
+            st.write(f"Salary: {row['Salary']}")
+            st.write(f"Summary: {row['Summary']}")
